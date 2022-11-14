@@ -1,0 +1,25 @@
+# bugs
+- ./gosdl2.exe -text="French.txt" -font="DejaVuSansMono.ttf"
+- ./gosdl2.exe -text="rus_bal_hiwnikov.txt" 
+
+(!)
+    panic: runtime error: slice bounds out of range [:39] with length 19
+    goroutine 1 [running, locked to thread]:
+    main.main() C:/msys64/home/Edgaras/gosdl2/main.go:337 +0x326f
+(!)
+    'Stone' exists in the database = "B_d_e_f"
+    35 3 39
+    panic: runtime error: slice bounds out of range [35:3]
+    goroutine 1 [running, locked to thread]:
+    main.main() C:/msys64/home/Edgaras/gosdl2/main.go:344 +0x33b1
+
+# other
+- add backwards highlighting
+- page up/down && maybe up/down doesn't reselect word if mouse didn't move
+- mouse cursor: rect dimensions are not accurate after a zoomIn/zoomOut 
+- some word highlighting is a bit off upon startup (it renders properly after a resize)
+  maybe it has something to do with font size?
+- remove and refactor util.go and util_test.go
+- can we move case *sdl.MouseMotionEvent: check_collision_mouse_over_words(t, ctx, &word_rects, &mouse_over)
+  stuff into case *sdl.MouseButtonEvent? We could technically just use X, Y coordinates,
+  but it depends on behaviour we want.
