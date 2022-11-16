@@ -1,3 +1,7 @@
 text/
 bin/
 fonts/
+.gitignore
+gosdl
+testmod
+*.db
