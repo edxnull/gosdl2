@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"time"
+	"unsafe"
 
 	"github.com/golang/freetype"
 	"github.com/veandco/go-sdl2/sdl"
@@ -199,7 +200,7 @@ func main() {
 
 	var anim func() bool
 
-	testTex.Update(&bgrect, bg.Pix, bg.Stride)
+	testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix[0]), bg.Stride)
 
 	// ----- database test -----
 	db := DBOpen()
@@ -220,7 +221,7 @@ func main() {
 	hiStartX := int32(textWindowOffset)
 	hiStartY := int32(0) // int32(ctx.PointToFixed(fontSize))
 
-    // + 1 because we have a 0 based indexing
+	// + 1 because we have a 0 based indexing
 	hiRects := NewHiLineRects(numLines+1, hiStartX, hiStartY)
 
 	var (
@@ -229,8 +230,8 @@ func main() {
 		selectedLine   int32
 	)
 
-    notYetSet := true
-    var startSelectionRange int
+	notYetSet := true
+	var startSelectionRange int
 
 	highlighted := false
 	testSelect := false
@@ -327,12 +328,12 @@ func main() {
 					// clear
 					colorG := image.NewUniform(color.RGBA{0, 255, 0, 108})
 					draw.Draw(bg, word_rects[word_rect_indx].Rect, colorG, image.Point{0, 0}, draw.Src)
-					testTex.Update(&bgrect, bg.Pix, bg.Stride)
+					testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix[0]), bg.Stride)
 
 					// draw
 					colorB := image.NewUniform(color.RGBA{0, 0, 244, 108})
 					draw.Draw(bg, word_rects[i].Rect, colorB, image.Point{0, 0}, draw.Src)
-					testTex.Update(&bgrect, bg.Pix, bg.Stride)
+					testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix[0]), bg.Stride)
 
 					word_rect_indx = i
 				}
@@ -366,7 +367,7 @@ func main() {
 			end := GetSelectedCharLen(testSelectIndexEnd)
 
 			lineHeight := ctx.PointToFixed(fontSize).Round()
-            // hiRects.rects[selectedLine].H = int32(lineHeight)
+			// hiRects.rects[selectedLine].H = int32(lineHeight)
 
 			selectedLine = int32(YCoordToNumLines(testSelectYCoord, lineHeight))
 
@@ -387,7 +388,7 @@ func main() {
 			startIndex32 := int32(startIndex)
 
 			if selectedLine <= int32(numLines) {
-                println(selectedLine)
+				println(selectedLine)
 				hiRects.rects[selectedLine].Y = int32(lineY - textWindowOffset)
 				// hiRects.rects[selectedLine].H = int32(lineHeight)
 
@@ -400,9 +401,9 @@ func main() {
 				// (!) we can probably solve our selection problems by using testSelectIndexStart
 				if testSelectIndexStart >= textWindowOffset && testSelectIndexStart <= maxWidth && notYetSet {
 					// fmt.Printf("ok... we got our position x: %d\n", testSelectIndexStart)
-                    hiRects.rects[selectedLine].X = int32(testSelectIndexStart)
-                    notYetSet = false
-                    startSelectionRange = int(selectedLine)
+					hiRects.rects[selectedLine].X = int32(testSelectIndexStart)
+					notYetSet = false
+					startSelectionRange = int(selectedLine)
 				}
 
 				if testSelectIndexEnd < maxWidth && !wentDown {
@@ -415,10 +416,10 @@ func main() {
 					maxWidth = int(WidthOfString(parsedFont, fontSize, testTokens[prevSelectedLine+startIndex32]))
 					hiRects.rects[prevSelectedLine].W = int32(maxWidth) - hiRects.rects[selectedLine-1].X
 
-                    // this is why we couldn't properly render maxWidth when we start at a latter X
-                    // it's because we need to select the prevLine instead of selectedLine! 
-                    // prevLine == selectedLine-1
-                    // println(maxWidth, int32(maxWidth) - hiRects.rects[selectedLine-1].X, hiRects.rects[selectedLine-1].X)
+					// this is why we couldn't properly render maxWidth when we start at a latter X
+					// it's because we need to select the prevLine instead of selectedLine!
+					// prevLine == selectedLine-1
+					// println(maxWidth, int32(maxWidth) - hiRects.rects[selectedLine-1].X, hiRects.rects[selectedLine-1].X)
 				} else if testSelectIndexEnd > maxWidth {
 					hiRects.rects[selectedLine].W = int32(maxWidth)
 				}
@@ -429,31 +430,31 @@ func main() {
 					markLast = false
 				}
 
-                // loop through and select range from start up to selectedLine
-                // so that we catch any lines that were missed
+				// loop through and select range from start up to selectedLine
+				// so that we catch any lines that were missed
 				hiRects.Show(startSelectionRange, int(selectedLine))
 
-                for i := int32(0); i < selectedLine; i++ {
-                    if hiRects.IsShown(int(i)) {
-                        // we don't set rects[i].W on selection start
-                        if i == int32(startSelectionRange) {
-                            draw_rect_without_border(renderer, &hiRects.rects[i], &sdl.Color{R: 200, G: 100, B: 80, A: 100})
-                            continue
-                        }
-                        // the following two lines are needed to set the Y properly
-                        lineY = lineHeight * (int(i) + 1)
-                        hiRects.rects[i].Y = int32(lineY - textWindowOffset)
+				for i := int32(0); i < selectedLine; i++ {
+					if hiRects.IsShown(int(i)) {
+						// we don't set rects[i].W on selection start
+						if i == int32(startSelectionRange) {
+							draw_rect_without_border(renderer, &hiRects.rects[i], &sdl.Color{R: 200, G: 100, B: 80, A: 100})
+							continue
+						}
+						// the following two lines are needed to set the Y properly
+						lineY = lineHeight * (int(i) + 1)
+						hiRects.rects[i].Y = int32(lineY - textWindowOffset)
 
-                        hiRects.rects[i].W = int32(WidthOfString(parsedFont, fontSize, testTokens[i+startIndex32]))
-                        draw_rect_without_border(renderer, &hiRects.rects[i], &sdl.Color{R: 200, G: 100, B: 80, A: 100})
-                    }
-                }
+						hiRects.rects[i].W = int32(WidthOfString(parsedFont, fontSize, testTokens[i+startIndex32]))
+						draw_rect_without_border(renderer, &hiRects.rects[i], &sdl.Color{R: 200, G: 100, B: 80, A: 100})
+					}
+				}
 			}
 
 			if highlighted {
 				max_str_len := len(testTokens[selectedLine+startIndex32])
 
-                // completely broken!
+				// completely broken!
 				// this branch is not guaranteed to be bug free (IT HAS TO BE TESTED!)
 				// switch {case:, case:, ...} also has to be tested!
 				if start < max_str_len && end < max_str_len {
@@ -481,9 +482,9 @@ func main() {
 					}
 				}
 
-                // reset
-                notYetSet = true
-                startSelectionRange = 0
+				// reset
+				notYetSet = true
+				startSelectionRange = 0
 				mouseButtonClickedAndDragged = false
 				hiRects.UnShowAllAndReset(hiStartX)
 			}
@@ -492,7 +493,7 @@ func main() {
 		if clearScreen {
 			colorG := image.NewUniform(color.RGBA{0, 255, 0, 108})
 			draw.Draw(bg, word_rects[word_rect_indx].Rect, colorG, image.Point{0, 0}, draw.Src)
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix), bg.Stride)
 			word_rect_indx = -1
 			clearScreen = false
 		}
@@ -516,7 +517,7 @@ func main() {
 
 			DrawToCtx(bg, ctx, pt, &testTokens, parsedFont, startIndex, numLines, fontSize, &word_rects)
 
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix), bg.Stride)
 		}
 
 		if moveLineUp {
@@ -536,7 +537,7 @@ func main() {
 
 			DrawToCtx(bg, ctx, pt, &testTokens, parsedFont, startIndex, numLines, fontSize, &word_rects)
 
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix), bg.Stride)
 		}
 
 		if movePageDown {
@@ -557,7 +558,7 @@ func main() {
 
 			DrawToCtx(bg, ctx, pt, &testTokens, parsedFont, startIndex, numLines, fontSize, &word_rects)
 
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix), bg.Stride)
 		}
 
 		if moveLineDown {
@@ -575,7 +576,7 @@ func main() {
 
 			DrawToCtx(bg, ctx, pt, &testTokens, parsedFont, startIndex, numLines, fontSize, &word_rects)
 
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix[0]), bg.Stride)
 		}
 
 		if zoomIn {
@@ -601,7 +602,7 @@ func main() {
 
 			DrawToCtx(bg, ctx, pt, &testTokens, parsedFont, startIndex, numLines, fontSize, &word_rects)
 
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix[0]), bg.Stride)
 		}
 
 		if zoomOut {
@@ -627,7 +628,7 @@ func main() {
 
 			DrawToCtx(bg, ctx, pt, &testTokens, parsedFont, startIndex, numLines, fontSize, &word_rects)
 
-			testTex.Update(&bgrect, bg.Pix, bg.Stride)
+			testTex.Update(&bgrect, unsafe.Pointer(&bg.Pix[0]), bg.Stride)
 		}
 
 		// we don't have to do this on every frame
@@ -641,7 +642,7 @@ func main() {
 		<-ticker.C
 	}
 
-    // why aren't we defer'ring these?
+	// why aren't we defer'ring these?
 	sdl.Quit()
 	ticker.Stop()
 	renderer.Destroy()
