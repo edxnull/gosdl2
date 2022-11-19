@@ -5,3 +5,4 @@ fonts/
 gosdl
 testmod
 *.db
+.DS_Store
